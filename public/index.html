@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ARTIFY — AI Art Generation</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500&family=DM+Mono:wght@300;400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --cream: #f5f0e8; --cream-dark: #ede7d9; --cream-deeper: #e4dccb;
+    --ink: #1a1612; --ink-light: rgba(26,22,18,0.55); --ink-faint: rgba(26,22,18,0.18);
+    --gold: #b8922a; --gold-light: #d4a84b; --gold-pale: rgba(184,146,42,0.12);
+    --serif: 'Playfair Display', Georgia, serif;
+    --mono: 'DM Mono', monospace; --sans: 'Jost', sans-serif;
+  }
+  html { scroll-behavior: smooth; }
+  body { background: var(--cream); color: var(--ink); font-family: var(--sans); overflow-x: hidden; }
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: var(--cream); }
+  ::-webkit-scrollbar-thumb { background: var(--gold); }
+  body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 998; opacity: 0.025; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 200; display: flex; align-items: center; justify-content: space-between; padding: 1.6rem 4rem; transition: background 0.4s, box-shadow 0.4s; }
+  nav.scrolled { background: rgba(245,240,232,0.94); box-shadow: 0 1px 0 var(--ink-faint); backdrop-filter: blur(12px); }
+  .nav-logo { font-family: var(--serif); font-weight: 700; font-size: 1.3rem; letter-spacing: 0.15em; cursor: pointer; }
+  .nav-logo span { color: var(--gold); }
+  .nav-links { display: flex; gap: 2.5rem; }
+  .nav-links a { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.15em; color: var(--ink-light); text-decoration: none; transition: color 0.2s; cursor: pointer; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-btn { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.15em; background: var(--ink); color: var(--cream); border: none; padding: 0.6rem 1.5rem; cursor: pointer; transition: background 0.2s; }
+  .nav-btn:hover { background: var(--gold); }
+  #hero { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; align-items: center; padding: 8rem 4rem 4rem; position: relative; overflow: hidden; gap: 4rem; }
+  .hero-bg-circle { position: absolute; right: -10%; top: 50%; transform: translateY(-50%); width: 55vw; height: 55vw; border-radius: 50%; background: radial-gradient(circle, var(--cream-deeper) 0%, var(--cream) 70%); border: 1px solid var(--ink-faint); pointer-events: none; }
+  .hero-left { position: relative; z-index: 2; }
+  .hero-tag { display: inline-flex; align-items: center; gap: 0.6rem; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.25em; color: var(--gold); border: 1px solid var(--gold-light); padding: 0.4rem 0.9rem; margin-bottom: 2.5rem; opacity: 0; transform: translateY(10px); animation: fadeUp 0.6s ease forwards; }
+  .hero-tag::before { content: '✦'; }
+  .hero-h1 { font-family: var(--serif); font-size: clamp(3rem, 5vw, 5.5rem); font-weight: 400; line-height: 1.08; opacity: 0; transform: translateY(40px); animation: fadeUp 0.9s ease 0.1s forwards; }
+  .hero-h1 em { font-style: italic; color: var(--gold); }
+  .hero-h1 strong { font-weight: 700; display: block; }
+  .hero-sub { margin-top: 2rem; color: var(--ink-light); font-size: 1rem; line-height: 1.8; font-weight: 300; max-width: 400px; opacity: 0; animation: fadeUp 0.8s ease 0.4s forwards; }
+  .hero-btns { margin-top: 3rem; display: flex; gap: 1rem; flex-wrap: wrap; opacity: 0; animation: fadeUp 0.8s ease 0.6s forwards; }
+  .btn-ink { background: var(--ink); color: var(--cream); border: none; padding: 1rem 2.2rem; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.15em; cursor: pointer; transition: background 0.2s; }
+  .btn-ink:hover { background: var(--gold); }
+  .btn-outline { background: transparent; color: var(--ink); border: 1px solid var(--ink-faint); padding: 1rem 2.2rem; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.15em; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+  .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+  .hero-stats { margin-top: 4rem; display: flex; gap: 3rem; opacity: 0; animation: fadeUp 0.8s ease 0.8s forwards; }
+  .stat-num { font-family: var(--serif); font-size: 2rem; font-weight: 700; display: block; }
+  .stat-label { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.15em; color: var(--ink-light); display: block; margin-top: 0.2rem; }
+  .hero-right { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; opacity: 0; animation: fadeUp 1s ease 0.3s forwards; }
+  .art-card { background: var(--cream-dark); border: 1px solid var(--ink-faint); border-radius: 3px; overflow: hidden; position: relative; transition: transform 0.3s, box-shadow 0.3s; cursor: pointer; }
+  .art-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(26,22,18,0.12); }
+  .art-card:first-child { grid-row: span 2; }
+  .art-card-inner { width: 100%; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; }
+  .art-card:first-child .art-card-inner { height: 320px; font-size: 5rem; }
+  .art-card:not(:first-child) .art-card-inner { height: 150px; }
+  .art-card-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(26,22,18,0.7); backdrop-filter: blur(6px); padding: 0.6rem 0.8rem; font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.15em; color: var(--cream); }
+  .gold-divider { height: 1px; background: linear-gradient(to right, transparent, var(--gold-light), transparent); margin: 0 4rem; }
+  #styles-sec { padding: 7rem 4rem; max-width: 1300px; margin: 0 auto; }
+  .sec-label { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.35em; color: var(--gold); margin-bottom: 1rem; }
+  .sec-h2 { font-family: var(--serif); font-size: clamp(2.2rem, 4vw, 3.5rem); font-weight: 400; margin-bottom: 0.5rem; }
+  .sec-h2 em { font-style: italic; color: var(--gold); }
+  .sec-sub { color: var(--ink-light); font-size: 0.9rem; font-weight: 300; margin-bottom: 4rem; max-width: 480px; }
+  .styles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+  .style-card { background: white; border: 1px solid var(--ink-faint); padding: 2.5rem; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; }
+  .style-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--gold); transform: scaleX(0); transition: transform 0.3s; transform-origin: left; }
+  .style-card:hover::after, .style-card.active::after { transform: scaleX(1); }
+  .style-card:hover { box-shadow: 0 8px 30px rgba(26,22,18,0.08); transform: translateY(-2px); }
+  .style-card.active { border-color: var(--gold-light); box-shadow: 0 8px 30px rgba(184,146,42,0.1); }
+  .style-emoji-wrap { width: 56px; height: 56px; background: var(--gold-pale); border: 1px solid rgba(184,146,42,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin-bottom: 1.5rem; }
+  .style-name { font-family: var(--serif); font-size: 1.3rem; font-weight: 500; margin-bottom: 0.6rem; }
+  .style-desc { font-size: 0.82rem; color: var(--ink-light); line-height: 1.65; }
+  .style-arrow { display: inline-block; margin-top: 1.2rem; font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.15em; color: var(--gold); }
+  #how { padding: 7rem 4rem; background: var(--ink); color: var(--cream); }
+  #how .inner { max-width: 1300px; margin: 0 auto; }
+  #how .sec-label { color: var(--gold-light); }
+  #how .sec-h2 { color: var(--cream); }
+  #how .sec-h2 em { color: var(--gold-light); }
+  .steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 4rem; }
+  .step { padding: 2.5rem 2rem; border-right: 1px solid rgba(245,240,232,0.1); }
+  .step:last-child { border-right: none; }
+  .step-num { font-family: var(--serif); font-size: 3.5rem; font-weight: 700; color: rgba(245,240,232,0.06); line-height: 1; margin-bottom: 1.5rem; display: block; }
+  .step-title { font-family: var(--serif); font-size: 1.4rem; font-weight: 400; margin-bottom: 0.8rem; color: var(--cream); }
+  .step-desc { font-size: 0.82rem; color: rgba(245,240,232,0.5); line-height: 1.7; font-weight: 300; }
+  .step-dot { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; margin-bottom: 1.5rem; }
+  #products { padding: 7rem 4rem; max-width: 1300px; margin: 0 auto; }
+  .products-layout { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 1.2rem; margin-top: 4rem; align-items: end; }
+  .product-card { background: var(--cream-dark); border: 1px solid var(--ink-faint); display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; cursor: pointer; transition: all 0.3s; }
+  .product-card:hover { box-shadow: 0 16px 50px rgba(26,22,18,0.1); transform: translateY(-4px); }
+  .product-card:nth-child(1) { height: 300px; } .product-card:nth-child(2) { height: 400px; } .product-card:nth-child(3) { height: 300px; }
+  .product-visual { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 4rem; }
+  .product-info { padding: 1.2rem 1.5rem; border-top: 1px solid var(--ink-faint); display: flex; justify-content: space-between; align-items: center; background: white; }
+  .product-name { font-family: var(--serif); font-size: 0.95rem; font-weight: 500; }
+  .product-price { font-family: var(--mono); font-size: 0.65rem; color: var(--gold); letter-spacing: 0.1em; }
+  #marquee-sec { padding: 3rem 0; overflow: hidden; background: var(--gold); }
+  .marquee-track { display: flex; gap: 3rem; white-space: nowrap; animation: marquee 18s linear infinite; }
+  .marquee-item { font-family: var(--serif); font-size: 1.1rem; font-style: italic; color: var(--ink); flex-shrink: 0; display: flex; align-items: center; gap: 2rem; }
+  .marquee-item::after { content: '✦'; font-style: normal; font-size: 0.7rem; opacity: 0.5; }
+  #cta { padding: 9rem 4rem; text-align: center; background: var(--cream-deeper); position: relative; overflow: hidden; }
+  #cta::before { content: ''; position: absolute; top: -60%; left: 50%; transform: translateX(-50%); width: 80vw; height: 80vw; border-radius: 50%; border: 1px solid var(--ink-faint); pointer-events: none; }
+  #cta::after { content: ''; position: absolute; top: -40%; left: 50%; transform: translateX(-50%); width: 50vw; height: 50vw; border-radius: 50%; border: 1px solid var(--ink-faint); pointer-events: none; }
+  .cta-inner { position: relative; z-index: 2; }
+  .cta-label { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.3em; color: var(--gold); margin-bottom: 1.5rem; }
+  .cta-h2 { font-family: var(--serif); font-size: clamp(3rem, 6vw, 5.5rem); font-weight: 400; line-height: 1.1; margin-bottom: 1rem; }
+  .cta-h2 em { font-style: italic; color: var(--gold); }
+  .cta-sub { color: var(--ink-light); font-size: 0.95rem; font-weight: 300; margin-bottom: 3rem; }
+  footer { background: var(--ink); color: var(--cream); padding: 3rem 4rem; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 2rem; }
+  .footer-logo { font-family: var(--serif); font-weight: 700; font-size: 1.2rem; letter-spacing: 0.15em; cursor: pointer; }
+  .footer-logo span { color: var(--gold); }
+  .footer-copy { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.15em; color: rgba(245,240,232,0.28); text-align: center; }
+  .footer-links { display: flex; gap: 2rem; justify-content: flex-end; font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.12em; }
+  .footer-links a { cursor: pointer; text-decoration: none; color: rgba(245,240,232,0.35); transition: color 0.2s; }
+  .footer-links a:hover { color: var(--gold-light); }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-delay-1 { transition-delay: 0.12s; } .reveal-delay-2 { transition-delay: 0.24s; } .reveal-delay-3 { transition-delay: 0.36s; }
+  .modal-overlay { position: fixed; inset: 0; z-index: 500; background: rgba(26,22,18,0.6); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 2rem; animation: fadeIn 0.25s ease; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: var(--cream); max-width: 600px; width: 100%; border: 1px solid var(--ink-faint); position: relative; animation: slideUp 0.3s ease; max-height: 92vh; overflow-y: auto; }
+  .modal-header { padding: 2rem 2rem 1.5rem; border-bottom: 1px solid var(--ink-faint); display: flex; justify-content: space-between; align-items: flex-start; position: sticky; top: 0; background: var(--cream); z-index: 2; }
+  .modal-title { font-family: var(--serif); font-size: 1.6rem; font-weight: 400; }
+  .modal-title em { font-style: italic; color: var(--gold); }
+  .modal-close { background: none; border: none; cursor: pointer; font-size: 1.3rem; color: var(--ink-light); transition: color 0.2s; line-height: 1; padding: 0.2rem; }
+  .modal-close:hover { color: var(--ink); }
+  .modal-body { padding: 2rem; }
+  .upload-zone { border: 2px dashed var(--ink-faint); padding: 3rem 2rem; text-align: center; cursor: pointer; transition: all 0.25s; background: white; position: relative; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--gold); background: var(--gold-pale); }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+  .upload-text { font-family: var(--serif); font-size: 1.1rem; margin-bottom: 0.4rem; }
+  .upload-hint { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em; color: var(--ink-light); }
+  .upload-preview { display: none; text-align: center; }
+  .upload-preview img { max-height: 180px; max-width: 100%; border: 1px solid var(--ink-faint); margin-bottom: 0.5rem; }
+  .style-select-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin: 1rem 0; }
+  .style-chip { padding: 0.65rem 0.4rem; border: 1px solid var(--ink-faint); text-align: center; cursor: pointer; transition: all 0.2s; background: white; font-family: var(--mono); font-size: 0.52rem; letter-spacing: 0.06em; }
+  .style-chip:hover { border-color: var(--gold); }
+  .style-chip.selected { border-color: var(--gold); background: var(--gold-pale); color: var(--gold); }
+  .style-chip-emoji { display: block; font-size: 1.2rem; margin-bottom: 0.3rem; }
+  .modal-actions { display: flex; gap: 0.8rem; margin-top: 1.5rem; }
+  .modal-actions .btn-ink, .modal-actions .btn-outline { flex: 1; text-align: center; }
+  .progress-wrap { margin-top: 1rem; }
+  .progress-label { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.15em; color: var(--ink-light); margin-bottom: 0.5rem; display: flex; justify-content: space-between; }
+  .progress-bar { height: 2px; background: var(--ink-faint); }
+  .progress-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.5s ease; }
+  .loader { display: none; text-align: center; padding: 2.5rem 1rem; }
+  .loader-art { font-size: 4rem; animation: pulse 1.5s ease infinite; margin-bottom: 1rem; display: block; }
+  .loader-spinner { width: 32px; height: 32px; border: 2px solid var(--ink-faint); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+  .loader-step { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.15em; color: var(--ink-light); margin-bottom: 0.4rem; }
+  .loader-substep { font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.1em; color: var(--gold); animation: pulse 1.5s ease infinite; }
+  .result-view { display: none; text-align: center; }
+  .result-img-wrap { background: white; border: 1px solid var(--ink-faint); margin-bottom: 1.2rem; min-height: 220px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .result-img-wrap img { max-width: 100%; max-height: 350px; display: block; }
+  .result-actions { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
+  .error-box { display: none; background: #fff5f5; border: 1px solid #ffcccc; padding: 1rem 1.2rem; margin-top: 1rem; font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.05em; color: #c0392b; line-height: 1.6; }
+  .gallery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; }
+  .gallery-item { background: white; border: 1px solid var(--ink-faint); cursor: pointer; transition: all 0.2s; overflow: hidden; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; position: relative; }
+  .gallery-item:hover { transform: scale(1.02); box-shadow: 0 6px 20px rgba(26,22,18,0.1); }
+  .gallery-item-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(26,22,18,0.75); color: var(--cream); font-family: var(--mono); font-size: 0.5rem; letter-spacing: 0.1em; padding: 0.4rem 0.6rem; opacity: 0; transition: opacity 0.2s; }
+  .gallery-item:hover .gallery-item-label { opacity: 1; }
+  .product-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  .product-mockup { background: white; border: 1px solid var(--ink-faint); display: flex; align-items: center; justify-content: center; font-size: 5rem; min-height: 220px; }
+  .product-price-big { font-family: var(--serif); font-size: 2rem; color: var(--gold); margin: 1rem 0; }
+  .size-grid { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.8rem 0; }
+  .size-btn { padding: 0.4rem 0.8rem; border: 1px solid var(--ink-faint); font-family: var(--mono); font-size: 0.6rem; cursor: pointer; transition: all 0.2s; background: white; }
+  .size-btn:hover, .size-btn.selected { border-color: var(--gold); background: var(--gold-pale); color: var(--gold); }
+  .qty-row { display: flex; align-items: center; gap: 1rem; margin: 0.8rem 0; }
+  .qty-btn { width: 32px; height: 32px; border: 1px solid var(--ink-faint); background: white; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .qty-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .qty-num { font-family: var(--mono); font-size: 0.9rem; min-width: 24px; text-align: center; }
+  .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: var(--cream); padding: 0.9rem 1.8rem; font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em; z-index: 600; opacity: 0; transition: all 0.3s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.gold { background: var(--gold); color: var(--ink); }
+  @media (max-width: 900px) {
+    nav { padding: 1.2rem 2rem; } .nav-links { display: none; }
+    #hero { grid-template-columns: 1fr; padding: 7rem 2rem 3rem; } .hero-bg-circle { display: none; }
+    .styles-grid { grid-template-columns: 1fr; } .steps-grid { grid-template-columns: 1fr 1fr; }
+    .step { border-right: none; border-bottom: 1px solid rgba(245,240,232,0.1); }
+    .products-layout { grid-template-columns: 1fr; } .product-card { height: 220px !important; }
+    footer { grid-template-columns: 1fr; text-align: center; } .footer-links { justify-content: center; }
+    #cta, #styles-sec, #products { padding: 5rem 2rem; } #how { padding: 5rem 2rem; }
+    .gold-divider { margin: 0 2rem; } .product-detail { grid-template-columns: 1fr; }
+    .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+    .style-select-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+</style>
+</head>
+<body>
+<nav id="navbar">
+  <div class="nav-logo" onclick="scrollToTop()">ARTI<span>FY</span></div>
+  <div class="nav-links">
+    <a onclick="scrollTo('how')">HOW IT WORKS</a>
+    <a onclick="scrollTo('styles-sec')">STYLES</a>
+    <a onclick="scrollTo('products')">PRODUCTS</a>
+    <a onclick="openModal('pricing-modal')">PRICING</a>
+  </div>
+  <button class="nav-btn" onclick="openModal('upload-modal')">TRY NOW →</button>
+</nav>
+<section id="hero">
+  <div class="hero-bg-circle"></div>
+  <div class="hero-left">
+    <div class="hero-tag">AI ART GENERATION</div>
+    <h1 class="hero-h1">Your Photos,<br><em>Reimagined</em> as<br><strong>Legendary Art</strong></h1>
+    <p class="hero-sub">Upload any photo and transform it into gallery-quality artwork. Print on premium merchandise or download instantly.</p>
+    <div class="hero-btns">
+      <button class="btn-ink" onclick="openModal('upload-modal')">↑ UPLOAD PHOTO</button>
+      <button class="btn-outline" onclick="scrollTo('styles-sec')">EXPLORE STYLES →</button>
+    </div>
+    <div class="hero-stats">
+      <div><span class="stat-num">12+</span><span class="stat-label">ART STYLES</span></div>
+      <div><span class="stat-num">50k</span><span class="stat-label">ARTWORKS MADE</span></div>
+      <div><span class="stat-num">4.9★</span><span class="stat-label">RATING</span></div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="art-card" onclick="openModal('upload-modal')"><div class="art-card-inner">🎨</div><div class="art-card-label">ANIME STYLE</div></div>
+    <div class="art-card" onclick="openModal('upload-modal')"><div class="art-card-inner">⚡</div><div class="art-card-label">CYBERPUNK</div></div>
+    <div class="art-card" onclick="openModal('upload-modal')"><div class="art-card-inner">✦</div><div class="art-card-label">LINE ART</div></div>
+  </div>
+</section>
+<div class="gold-divider"></div>
+<section id="styles-sec">
+  <div class="reveal">
+    <div class="sec-label">✦ ART STYLES</div>
+    <h2 class="sec-h2">Choose Your <em>Aesthetic</em></h2>
+    <p class="sec-sub">From dreamy anime to raw cyberpunk — every style transforms your photo into something extraordinary.</p>
+  </div>
+  <div class="styles-grid">
+    <div class="style-card active reveal" onclick="selectAndUpload(this,'Anime Style')"><div class="style-emoji-wrap">🌸</div><div class="style-name">Anime Style</div><div class="style-desc">Soft lines, vibrant colors, manga-inspired character art.</div><div class="style-arrow">TRY THIS STYLE →</div></div>
+    <div class="style-card reveal reveal-delay-1" onclick="selectAndUpload(this,'Cyberpunk')"><div class="style-emoji-wrap">⚡</div><div class="style-name">Cyberpunk</div><div class="style-desc">Neon chaos, dystopian vibes, glitch aesthetics.</div><div class="style-arrow">TRY THIS STYLE →</div></div>
+    <div class="style-card reveal reveal-delay-2" onclick="selectAndUpload(this,'Line Art')"><div class="style-emoji-wrap">✦</div><div class="style-name">Minimal Line Art</div><div class="style-desc">Clean geometry, ink sketches, architectural precision.</div><div class="style-arrow">TRY THIS STYLE →</div></div>
+  </div>
+</section>
+<section id="how">
+  <div class="inner">
+    <div class="reveal"><div class="sec-label">✦ THE PROCESS</div><h2 class="sec-h2">Four Steps to <em>Extraordinary</em></h2></div>
+    <div class="steps-grid">
+      <div class="step reveal" style="cursor:pointer" onclick="openModal('upload-modal')"><span class="step-num">01</span><div class="step-dot"></div><div class="step-title">Upload</div><div class="step-desc">Drop any photo — portrait, pet, landscape.</div></div>
+      <div class="step reveal reveal-delay-1" style="cursor:pointer" onclick="scrollTo('styles-sec')"><span class="step-num">02</span><div class="step-dot"></div><div class="step-title">Choose Style</div><div class="step-desc">Pick from 8+ AI art transformations.</div></div>
+      <div class="step reveal reveal-delay-2" style="cursor:pointer" onclick="scrollTo('products')"><span class="step-num">03</span><div class="step-dot"></div><div class="step-title">Preview Merch</div><div class="step-desc">See your artwork on premium tees and prints.</div></div>
+      <div class="step reveal reveal-delay-3" style="cursor:pointer" onclick="openModal('upload-modal')"><span class="step-num">04</span><div class="step-dot"></div><div class="step-title">Download</div><div class="step-desc">Full resolution download or ship to your door.</div></div>
+    </div>
+  </div>
+</section>
+<section id="marquee-sec">
+  <div class="marquee-track">
+    <span class="marquee-item">Anime Style</span><span class="marquee-item">Cyberpunk</span><span class="marquee-item">Watercolor</span><span class="marquee-item">Oil Painting</span><span class="marquee-item">Line Art</span><span class="marquee-item">Impressionist</span><span class="marquee-item">Ukiyo-e</span><span class="marquee-item">Pixel Art</span>
+    <span class="marquee-item">Anime Style</span><span class="marquee-item">Cyberpunk</span><span class="marquee-item">Watercolor</span><span class="marquee-item">Oil Painting</span><span class="marquee-item">Line Art</span><span class="marquee-item">Impressionist</span><span class="marquee-item">Ukiyo-e</span><span class="marquee-item">Pixel Art</span>
+  </div>
+</section>
+<section id="products">
+  <div class="reveal"><div class="sec-label">✦ MERCHANDISE</div><h2 class="sec-h2">Wear Your <em>Vision</em></h2><p class="sec-sub">Every piece printed on demand with museum-quality inks.</p></div>
+  <div class="products-layout">
+    <div class="product-card reveal" onclick="openProductModal('Premium T-Shirt','👕','$29','Soft 100% organic cotton.')"><div class="product-visual">👕</div><div class="product-info"><span class="product-name">Premium T-Shirt</span><span class="product-price">FROM $29</span></div></div>
+    <div class="product-card reveal reveal-delay-1" onclick="openProductModal('Art Print','🖼','$39','Museum-quality giclée on 300gsm archival paper.')"><div class="product-visual" style="font-size:5rem">🖼</div><div class="product-info"><span class="product-name">Art Print</span><span class="product-price">FROM $39</span></div></div>
+    <div class="product-card reveal reveal-delay-2" onclick="openProductModal('Hoodie','🧥','$59','Heavyweight fleece, drop-shoulder fit.')"><div class="product-visual">🧥</div><div class="product-info"><span class="product-name">Hoodie</span><span class="product-price">FROM $59</span></div></div>
+  </div>
+</section>
+<section id="cta" style="background:var(--cream-deeper);">
+  <div class="cta-inner">
+    <div class="cta-label reveal">✦ READY TO CREATE</div>
+    <h2 class="cta-h2 reveal">Turn Any Photo Into<br>Your <em>Masterpiece</em></h2>
+    <p class="cta-sub reveal">Join 50,000+ artists who've already transformed their memories.</p>
+    <div class="reveal" style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <button class="btn-ink" style="padding:1.1rem 3rem;font-size:0.75rem;letter-spacing:0.2em;" onclick="openModal('upload-modal')">START CREATING →</button>
+      <button class="btn-outline" style="padding:1.1rem 2rem;font-size:0.75rem;" onclick="openModal('gallery-modal')">VIEW GALLERY</button>
+    </div>
+  </div>
+</section>
+<footer>
+  <div class="footer-logo" onclick="scrollToTop()">ARTI<span>FY</span></div>
+  <div class="footer-copy">© 2026 ARTIFY — AI GENERATED ART PLATFORM</div>
+  <div class="footer-links"><a onclick="openModal('privacy-modal')">PRIVACY</a><a onclick="openModal('terms-modal')">TERMS</a><a onclick="openModal('contact-modal')">CONTACT</a></div>
+</footer>
+<div class="modal-overlay" id="upload-modal" onclick="overlayClose(event,'upload-modal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div><div style="font-family:var(--mono);font-size:0.58rem;letter-spacing:0.25em;color:var(--gold);margin-bottom:0.4rem">✦ CREATE ARTWORK</div><h2 class="modal-title">Upload Your <em>Photo</em></h2></div>
+      <button class="modal-close" onclick="closeModal('upload-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="upload-form">
+        <div id="upload-zone" class="upload-zone" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="handleDrop(event)">
+          <input type="file" accept="image/*" onchange="handleFile(event)" id="file-input"/>
+          <span class="upload-icon">📷</span>
+          <div class="upload-text">Drop your photo here</div>
+          <div class="upload-hint">OR CLICK TO BROWSE — JPG, PNG, WEBP UP TO 10MB</div>
+        </div>
+        <div id="upload-preview" class="upload-preview">
+          <img id="preview-img" src="" alt="Preview"/>
+          <div style="font-family:var(--mono);font-size:0.6rem;letter-spacing:0.1em;color:var(--gold)" id="preview-filename"></div>
+        </div>
+        <div style="margin-top:1.2rem">
+          <div style="font-family:var(--mono);font-size:0.58rem;letter-spacing:0.2em;color:var(--ink-light);margin-bottom:0.7rem">SELECT ART STYLE</div>
+          <div class="style-select-grid">
+            <div class="style-chip selected" onclick="pickStyle(this,'Anime Style')"><span class="style-chip-emoji">🌸</span>ANIME</div>
+            <div class="style-chip" onclick="pickStyle(this,'Cyberpunk')"><span class="style-chip-emoji">⚡</span>CYBERPUNK</div>
+            <div class="style-chip" onclick="pickStyle(this,'Line Art')"><span class="style-chip-emoji">✦</span>LINE ART</div>
+            <div class="style-chip" onclick="pickStyle(this,'Watercolor')"><span class="style-chip-emoji">🎨</span>WATERCOLOR</div>
+            <div class="style-chip" onclick="pickStyle(this,'Oil Painting')"><span class="style-chip-emoji">🖼</span>OIL PAINT</div>
+            <div class="style-chip" onclick="pickStyle(this,'Pixel Art')"><span class="style-chip-emoji">🕹</span>PIXEL ART</div>
+            <div class="style-chip" onclick="pickStyle(this,'Impressionist')"><span class="style-chip-emoji">🌅</span>IMPRESSIONIST</div>
+            <div class="style-chip" onclick="pickStyle(this,'Ukiyo-e')"><span class="style-chip-emoji">🗻</span>UKIYO-E</div>
+          </div>
+        </div>
+        <div class="error-box" id="error-box"></div>
+        <div class="modal-actions">
+          <button class="btn-outline" onclick="closeModal('upload-modal')">CANCEL</button>
+          <button class="btn-ink" onclick="generateArt()" id="generate-btn">GENERATE ART →</button>
+        </div>
+      </div>
+      <div class="loader" id="upload-loader">
+        <span class="loader-art" id="loader-emoji">🌸</span>
+        <div class="loader-spinner"></div>
+        <div class="loader-step" id="loader-step">UPLOADING PHOTO...</div>
+        <div class="loader-substep" id="loader-substep">This takes 20–40 seconds</div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span id="progress-text">Starting...</span><span id="progress-pct">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+      </div>
+      <div class="result-view" id="result-view">
+        <div style="font-family:var(--mono);font-size:0.6rem;letter-spacing:0.2em;color:var(--gold);margin-bottom:1rem">✦ YOUR ARTWORK IS READY</div>
+        <div class="result-img-wrap"><img id="result-img" src="" alt="Generated Art"/></div>
+        <div style="font-family:var(--serif);font-size:1rem;margin-bottom:1.5rem;color:var(--ink-light)" id="result-label"></div>
+        <div class="result-actions">
+          <button class="btn-ink" onclick="downloadResult()">↓ DOWNLOAD</button>
+          <button class="btn-outline" onclick="resetUpload()">TRY ANOTHER STYLE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="gallery-modal" onclick="overlayClose(event,'gallery-modal')">
+  <div class="modal-box" style="max-width:720px">
+    <div class="modal-header"><div><div style="font-family:var(--mono);font-size:0.58rem;letter-spacing:0.25em;color:var(--gold);margin-bottom:0.4rem">✦ COMMUNITY</div><h2 class="modal-title">Recent <em>Masterpieces</em></h2></div><button class="modal-close" onclick="closeModal('gallery-modal')">✕</button></div>
+    <div class="modal-body">
+      <div class="gallery-grid">
+        <div class="gallery-item" onclick="showToast('Opening...')">🌸<div class="gallery-item-label">ANIME — @luna</div></div>
+        <div class="gallery-item" onclick="showToast('Opening...')">⚡<div class="gallery-item-label">CYBERPUNK — @rex</div></div>
+        <div class="gallery-item" onclick="showToast('Opening...')">🎨<div class="gallery-item-label">WATERCOLOR — @mia</div></div>
+        <div class="gallery-item" onclick="showToast('Opening...')">✦<div class="gallery-item-label">LINE ART — @kai</div></div>
+        <div class="gallery-item" onclick="showToast('Opening...')">🖼<div class="gallery-item-label">OIL PAINT — @sara</div></div>
+        <div class="gallery-item" onclick="showToast('Opening...')">🕹<div class="gallery-item-label">PIXEL — @noel</div></div>
+      </div>
+      <div style="margin-top:1.5rem;text-align:center"><button class="btn-ink" onclick="openModal('upload-modal');closeModal('gallery-modal')">CREATE YOUR OWN →</button></div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="product-modal" onclick="overlayClose(event,'product-modal')">
+  <div class="modal-box">
+    <div class="modal-header"><div><div style="font-family:var(--mono);font-size:0.58rem;letter-spacing:0.25em;color:var(--gold);margin-bottom:0.4rem">✦ MERCHANDISE</div><h2 class="modal-title" id="pm-title">Product</h2></div><button class="modal-close" onclick="closeModal('product-modal')">✕</button></div>
+    <div class="modal-body">
+      <div class="product-detail">
+        <div class="product-mockup" id="pm-emoji">👕</div>
+        <div style="display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <div style="font-size:0.85rem;color:var(--ink-light);line-height:1.7;margin-bottom:0.5rem" id="pm-desc"></div>
+            <div class="product-price-big" id="pm-price">$29</div>
+            <div style="font-family:var(--mono);font-size:0.58rem;letter-spacing:0.15em;color:var(--ink-light);margin-bottom:0.4rem">SIZE</div>
+            <div class="size-grid"><div class="size-btn" onclick="selectSize(this)">XS</div><div class="size-btn selected" onclick="selectSize(this)">S</div><div class="size-btn" onclick="selectSize(this)">M</div><div class="size-btn" onclick="selectSize(this)">L</div><div class="size-btn" onclick="selectSize(this)">XL</div></div>
+            <div style="font-family:var(--mono);font-size:0.58rem;letter-spacing:0.15em;color:var(--ink-light);margin-bottom:0.4rem">QUANTITY</div>
+            <div class="qty-row"><button class="qty-btn" onclick="changeQty(-1)">−</button><span class="qty-num" id="qty-display">1</span><button class="qty-btn" onclick="changeQty(1)">+</button></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.6rem;margin-top:1rem">
+            <button class="btn-ink" onclick="addToCart()">ADD TO CART →</button>
+            <button class="btn-outline" onclick="openModal('upload-modal');closeModal('product-modal')">CUSTOMISE WITH MY ART</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="pricing-modal" onclick="overlayClose(event,'pricing-modal')">
+  <div class="modal-box" style="max-width:640px">
+    <div class="modal-header"><div><div style="font-family:var(--mono);font-size:0.58rem;letter-spacing:0.25em;color:var(--gold);margin-bottom:0.4rem">✦ PRICING</div><h2 class="modal-title">Simple, <em>Transparent</em> Pricing</h2></div><button class="modal-close" onclick="closeModal('pricing-modal')">✕</button></div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
+        <div style="border:1px solid var(--ink-faint);padding:1.5rem;text-align:center;background:white"><div style="font-family:var(--mono);font-size:0.6rem;letter-spacing:0.2em;color:var(--ink-light);margin-bottom:0.8rem">FREE</div><div style="font-family:var(--serif);font-size:2rem;font-weight:700;margin-bottom:0.5rem">$0</div><div style="font-size:0.78rem;color:var(--ink-light);line-height:1.7;margin-bottom:1.2rem">3 artworks/mo<br>Watermarked<br>Low resolution</div><button class="btn-outline" style="width:100%;padding:0.6rem" onclick="showToast('✓ Already on Free plan');closeModal('pricing-modal')">CURRENT PLAN</button></div>
+        <div style="border:2px solid var(--gold);padding:1.5rem;text-align:center;background:var(--gold-pale);position:relative"><div style="position:absolute;top:-0.7rem;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--ink);font-family:var(--mono);font-size:0.5rem;letter-spacing:0.15em;padding:0.2rem 0.7rem">POPULAR</div><div style="font-family:var(--mono);font-size:0.6rem;letter-spacing:0.2em;color:var(--gold);margin-bottom:0.8rem">PRO</div><div style="font-family:var(--serif);font-size:2rem;font-weight:700;margin-bottom:0.5rem">$12<span style="font-size:0.9rem;font-weight:400">/mo</span></div><div style="font-size:0.78rem;color:var(--ink-light);line-height:1.7;margin-bottom:1.2rem">Unlimited artworks<br>No watermark<br>HD download</div><button class="btn-ink" style="width:100%;padding:0.6rem" onclick="showToast('✓ Upgrading to Pro!','gold');closeModal('pricing-modal')">UPGRADE →</button></div>
+        <div style="border:1px solid var(--ink-faint);padding:1.5rem;text-align:center;background:white"><div style="font-family:var(--mono);font-size:0.6rem;letter-spacing:0.2em;color:var(--ink-light);margin-bottom:0.8rem">STUDIO</div><div style="font-family:var(--serif);font-size:2rem;font-weight:700;margin-bottom:0.5rem">$49<span style="font-size:0.9rem;font-weight:400">/mo</span></div><div style="font-size:0.78rem;color:var(--ink-light);line-height:1.7;margin-bottom:1.2rem">Team access<br>API access<br>Priority support</div><button class="btn-outline" style="width:100%;padding:0.6rem" onclick="showToast('Our team will be in touch!');closeModal('pricing-modal')">CONTACT SALES</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="contact-modal" onclick="overlayClose(event,'contact-modal')">
+  <div class="modal-box">
+    <div class="modal-header"><div><div style="font-family:var(--mono);font-size:0.58rem;letter-spacing:0.25em;color:var(--gold);margin-bottom:0.4rem">✦ GET IN TOUCH</div><h2 class="modal-title">Say <em>Hello</em></h2></div><button class="modal-close" onclick="closeModal('contact-modal')">✕</button></div>
+    <div class="modal-body"><div style="display:flex;flex-direction:column;gap:1rem">
+      <div><div style="font-family:var(--mono);font-size:0.58rem;letter-spacing:0.15em;color:var(--ink-light);margin-bottom:0.4rem">NAME</div><input id="contact-name" type="text" placeholder="Jane Smith" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--ink-faint);background:white;font-family:var(--sans);font-size:0.9rem;outline:none" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--ink-faint)'"/></div>
+      <div><div style="font-family:var(--mono);font-size:0.58rem;letter-spacing:0.15em;color:var(--ink-light);margin-bottom:0.4rem">EMAIL</div><input id="contact-email" type="email" placeholder="jane@example.com" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--ink-faint);background:white;font-family:var(--sans);font-size:0.9rem;outline:none" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--ink-faint)'"/></div>
+      <div><div style="font-family:var(--mono);font-size:0.58rem;letter-spacing:0.15em;color:var(--ink-light);margin-bottom:0.4rem">MESSAGE</div><textarea id="contact-msg" rows="4" placeholder="Tell us about your project..." style="width:100%;padding:0.75rem 1rem;border:1px solid var(--ink-faint);background:white;font-family:var(--sans);font-size:0.9rem;outline:none;resize:vertical" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--ink-faint)'"></textarea></div>
+      <button class="btn-ink" onclick="submitContact()" style="align-self:flex-start;padding:0.9rem 2rem">SEND MESSAGE →</button>
+    </div></div>
+  </div>
+</div>
+<div class="modal-overlay" id="privacy-modal" onclick="overlayClose(event,'privacy-modal')">
+  <div class="modal-box"><div class="modal-header"><h2 class="modal-title">Privacy <em>Policy</em></h2><button class="modal-close" onclick="closeModal('privacy-modal')">✕</button></div>
+  <div class="modal-body" style="font-size:0.88rem;line-height:1.8;color:var(--ink-light)">
+    <p style="margin-bottom:1rem"><strong style="color:var(--ink);font-family:var(--serif)">Data We Collect</strong><br>We collect only what's needed: your email, uploaded photos (temporarily), and generated artwork. Photos are deleted after 24 hours.</p>
+    <p style="margin-bottom:1rem"><strong style="color:var(--ink);font-family:var(--serif)">How We Use It</strong><br>Your photos are used solely to generate your requested artwork. We never share them with third parties.</p>
+    <p><strong style="color:var(--ink);font-family:var(--serif)">Your Rights</strong><br>Request deletion anytime at privacy@artify.art</p>
+  </div></div>
+</div>
+<div class="modal-overlay" id="terms-modal" onclick="overlayClose(event,'terms-modal')">
+  <div class="modal-box"><div class="modal-header"><h2 class="modal-title">Terms of <em>Service</em></h2><button class="modal-close" onclick="closeModal('terms-modal')">✕</button></div>
+  <div class="modal-body" style="font-size:0.88rem;line-height:1.8;color:var(--ink-light)">
+    <p style="margin-bottom:1rem"><strong style="color:var(--ink);font-family:var(--serif)">Ownership</strong><br>You retain full ownership of artwork generated from your photos.</p>
+    <p style="margin-bottom:1rem"><strong style="color:var(--ink);font-family:var(--serif)">Acceptable Use</strong><br>Do not upload photos of others without consent or generate illegal content.</p>
+    <p><strong style="color:var(--ink);font-family:var(--serif)">Refunds</strong><br>Digital downloads non-refundable. Merchandise returnable within 30 days if defective.</p>
+  </div></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+  const navbar=document.getElementById('navbar');
+  window.addEventListener('scroll',()=>navbar.classList.toggle('scrolled',window.scrollY>40));
+  function scrollToTop(){window.scrollTo({top:0,behavior:'smooth'});}
+  function scrollTo(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});}
+  const revealObs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');}),{threshold:0.1});
+  document.querySelectorAll('.reveal').forEach(el=>revealObs.observe(el));
+  function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
+  function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
+  function overlayClose(e,id){if(e.target===document.getElementById(id))closeModal(id);}
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>{m.classList.remove('open');document.body.style.overflow='';});});
+  let toastTimer;
+  function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(type?' '+type:'')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3000);}
+  function selectStyle(el,name){document.querySelectorAll('.style-card').forEach(c=>c.classList.remove('active'));el.classList.add('active');}
+  function selectAndUpload(el,name){selectStyle(el,name);document.querySelectorAll('.style-chip').forEach(c=>{c.classList.remove('selected');if(c.getAttribute('onclick')?.includes(name))c.classList.add('selected');});selectedStyle=name;openModal('upload-modal');}
+  let selectedStyle='Anime Style',fileBase64=null,resultUrl=null;
+  function pickStyle(el,name){document.querySelectorAll('.style-chip').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');selectedStyle=name;}
+  function dragOver(e){e.preventDefault();document.getElementById('upload-zone').classList.add('drag-over');}
+  function dragLeave(){document.getElementById('upload-zone').classList.remove('drag-over');}
+  function handleDrop(e){e.preventDefault();dragLeave();const f=e.dataTransfer.files[0];if(f)processFile(f);}
+  function handleFile(e){if(e.target.files[0])processFile(e.target.files[0]);}
+  function processFile(file){
+    if(!file.type.startsWith('image/')){showError('Please upload an image file.');return;}
+    if(file.size>10*1024*1024){showError('File too large. Max 10MB.');return;}
+    const reader=new FileReader();
+    reader.onload=(e)=>{fileBase64=e.target.result;document.getElementById('preview-img').src=fileBase64;document.getElementById('preview-filename').textContent='✓ '+file.name.toUpperCase();document.getElementById('upload-zone').style.display='none';document.getElementById('upload-preview').style.display='block';hideError();};
+    reader.readAsDataURL(file);
+  }
+  function showError(msg){const b=document.getElementById('error-box');b.textContent='⚠ '+msg;b.style.display='block';}
+  function hideError(){document.getElementById('error-box').style.display='none';}
+  async function generateArt(){
+    if(!fileBase64){showError('Please upload a photo first.');return;}
+    hideError();
+    const styleEmojis={'Anime Style':'🌸','Cyberpunk':'⚡','Line Art':'✦','Watercolor':'💧','Oil Painting':'🎭','Pixel Art':'🕹','Impressionist':'🌅','Ukiyo-e':'🗻'};
+    document.getElementById('upload-form').style.display='none';
+    const loader=document.getElementById('upload-loader');
+    loader.style.display='block';
+    document.getElementById('loader-emoji').textContent=styleEmojis[selectedStyle]||'🎨';
+    const steps=[{step:'UPLOADING PHOTO...',sub:'Preparing your image',pct:15},{step:'APPLYING '+selectedStyle.toUpperCase()+'...',sub:'AI is painting your photo',pct:45},{step:'ADDING FINE DETAILS...',sub:'Refining textures & colours',pct:75},{step:'FINISHING TOUCHES...',sub:'Almost ready!',pct:90}];
+    let si=0;
+    const stepInterval=setInterval(()=>{if(si<steps.length){const s=steps[si++];document.getElementById('loader-step').textContent=s.step;document.getElementById('loader-substep').textContent=s.sub;document.getElementById('progress-text').textContent=s.step;document.getElementById('progress-pct').textContent=s.pct+'%';document.getElementById('progress-fill').style.width=s.pct+'%';}},700);
+    try{
+      const response=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:fileBase64,style:selectedStyle})});
+      clearInterval(stepInterval);
+      document.getElementById('progress-fill').style.width='100%';
+      document.getElementById('progress-pct').textContent='100%';
+      const data=await response.json();
+      if(!response.ok||data.error)throw new Error(data.error||'Generation failed');
+      resultUrl=data.imageUrl;
+      loader.style.display='none';
+      document.getElementById('result-img').src=resultUrl;
+      document.getElementById('result-label').textContent=selectedStyle+' Transformation';
+      document.getElementById('result-view').style.display='block';
+      showToast('✦ Your artwork is ready!','gold');
+    }catch(err){
+      clearInterval(stepInterval);
+      loader.style.display='none';
+      document.getElementById('upload-form').style.display='block';
+      showError('Generation failed: '+err.message);
+    }
+  }
+  function downloadResult(){if(!resultUrl)return;const a=document.createElement('a');a.href=resultUrl;a.download='artify-'+selectedStyle.replace(/ /g,'-').toLowerCase()+'.png';a.click();showToast('↓ Downloading...','gold');}
+  function resetUpload(){fileBase64=null;resultUrl=null;document.getElementById('upload-form').style.display='block';document.getElementById('upload-zone').style.display='block';document.getElementById('upload-preview').style.display='none';document.getElementById('upload-loader').style.display='none';document.getElementById('result-view').style.display='none';document.getElementById('file-input').value='';document.getElementById('progress-fill').style.width='0%';hideError();}
+  let qty=1;
+  function openProductModal(name,emoji,price,desc){const parts=name.split(' ');document.getElementById('pm-title').innerHTML=parts.slice(0,-1).join(' ')+' <em>'+parts.slice(-1)+'</em>';document.getElementById('pm-emoji').textContent=emoji;document.getElementById('pm-price').textContent=price;document.getElementById('pm-desc').textContent=desc;qty=1;document.getElementById('qty-display').textContent=1;openModal('product-modal');}
+  function selectSize(el){document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('selected'));el.classList.add('selected');}
+  function changeQty(d){qty=Math.max(1,qty+d);document.getElementById('qty-display').textContent=qty;}
+  function addToCart(){const name=document.getElementById('pm-title').textContent;const size=document.querySelector('.size-btn.selected')?.textContent||'M';showToast('✓ '+qty+'× '+name+' ('+size+') added','gold');closeModal('product-modal');}
+  function submitContact(){const name=document.getElementById('contact-name').value.trim();const email=document.getElementById('contact-email').value.trim();const msg=document.getElementById('contact-msg').value.trim();if(!name||!email||!msg){showToast('⚠ Please fill in all fields');return;}if(!email.includes('@')){showToast('⚠ Invalid email');return;}showToast('✓ Message sent!','gold');closeModal('contact-modal');['contact-name','contact-email','contact-msg'].forEach(id=>document.getElementById(id).value='');}
+</script>
+</body>
+</html>
