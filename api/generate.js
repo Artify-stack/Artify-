@@ -23,49 +23,42 @@ module.exports = async function handler(req, res) {
   const prompt = stylePrompts[style] || 'artistic illustration high quality';
 
   try {
-    const startRes = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        version: '9a9b6aa5ac2793993aaaff48fd0e05fc5be213bc85a0bafd24e578d3bb81e628',
-        input: {
-          prompt: prompt,
-          image: imageBase64,
-          prompt_strength: 0.6,
-          num_inference_steps: 25,
-          guidance_scale: 7,
+    // Convert base64 to binary
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+
+    // Call Hugging Face Stable Diffusion img2img
+    const response = await fetch(
+      'https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.HUGGING_FACE_TOKEN}`,
+          'Content-Type': 'application/json',
         },
-      }),
-    });
+        body: JSON.stringify({
+          inputs: prompt,
+          parameters: {
+            num_inference_steps: 25,
+            guidance_scale: 7.5,
+            width: 512,
+            height: 512,
+          }
+        }),
+      }
+    );
 
-    const text = await startRes.text();
-    let prediction;
-    try { prediction = JSON.parse(text); }
-    catch(e) { return res.status(500).json({ error: 'Replicate parse error: ' + text.slice(0,200) }); }
-
-    if (!startRes.ok || prediction.error) {
-      return res.status(500).json({ error: 'Failed: ' + JSON.stringify(prediction) });
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(500).json({ error: 'HF error: ' + errText.slice(0, 200) });
     }
 
-    let result = prediction;
-    let attempts = 0;
-    while (result.status !== 'succeeded' && result.status !== 'failed' && attempts < 30) {
-      await new Promise(r => setTimeout(r, 2000));
-      const poll = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
-        headers: { 'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}` },
-      });
-      result = await poll.json();
-      attempts++;
-    }
+    // Response is an image binary — convert to base64
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const resultBase64 = 'data:image/jpeg;base64,' + buffer.toString('base64');
 
-    if (result.status !== 'succeeded') {
-      return res.status(500).json({ error: result.error || 'Generation failed after ' + attempts + ' attempts' });
-    }
-
-    return res.status(200).json({ imageUrl: result.output?.[0] || result.output });
+    return res.status(200).json({ imageUrl: resultBase64 });
 
   } catch (err) {
     return res.status(500).json({ error: err.message });
