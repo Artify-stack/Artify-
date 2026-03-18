@@ -30,7 +30,7 @@ module.exports = async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        version: 'a9758cbfbd5f3c2094457d996681af52552901c738cfa55773588b66cf52bf59',
+        version: '15a3689ee13b0d2616e98820eca31d4af4b36574b1e8b9ece76bce66b7e98b5',
         input: {
           prompt: prompt,
           image: imageBase64,
