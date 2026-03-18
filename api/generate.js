@@ -11,16 +11,16 @@ module.exports = async function handler(req, res) {
 
   const stylePrompts = {
     'Anime Style': 'anime style illustration, manga art, vibrant colors, bold outlines, high quality',
-    'Cyberpunk': 'cyberpunk art style, neon lights, dystopian, electric colors, glitch effects, high quality',
-    'Line Art': 'minimal line art, clean ink drawing, black and white, elegant, high quality',
-    'Watercolor': 'watercolor painting, soft washes, artistic, dreamy, high quality',
-    'Oil Painting': 'oil painting style, classic fine art, rich textures, painterly, high quality',
-    'Pixel Art': 'pixel art style, 16-bit, retro game art, colorful, high quality',
-    'Impressionist': 'impressionist painting, loose brushstrokes, Monet style, soft light, high quality',
-    'Ukiyo-e': 'ukiyo-e Japanese woodblock print style, flat colors, bold outlines, traditional',
+    'Cyberpunk': 'cyberpunk neon lights dystopian electric colors glitch effects high quality',
+    'Line Art': 'minimal line art clean ink drawing black and white elegant high quality',
+    'Watercolor': 'watercolor painting soft washes artistic dreamy high quality',
+    'Oil Painting': 'oil painting classic fine art rich textures painterly high quality',
+    'Pixel Art': 'pixel art 16-bit retro game art colorful high quality',
+    'Impressionist': 'impressionist painting loose brushstrokes Monet style soft light high quality',
+    'Ukiyo-e': 'ukiyo-e Japanese woodblock print flat colors bold outlines traditional',
   };
 
-  const prompt = stylePrompts[style] || 'artistic illustration, high quality';
+  const prompt = stylePrompts[style] || 'artistic illustration high quality';
 
   try {
     const startRes = await fetch('https://api.replicate.com/v1/predictions', {
@@ -34,16 +34,20 @@ module.exports = async function handler(req, res) {
         input: {
           prompt: prompt,
           image: imageBase64,
-          prompt_strength: 0.7,
-          num_inference_steps: 30,
-          guidance_scale: 7.5,
+          prompt_strength: 0.6,
+          num_inference_steps: 25,
+          guidance_scale: 7,
         },
       }),
     });
 
-    const prediction = await startRes.json();
+    const text = await startRes.text();
+    let prediction;
+    try { prediction = JSON.parse(text); }
+    catch(e) { return res.status(500).json({ error: 'Replicate parse error: ' + text.slice(0,200) }); }
+
     if (!startRes.ok || prediction.error) {
-      return res.status(500).json({ error: prediction.error || 'Failed to start' });
+      return res.status(500).json({ error: prediction.error || 'Failed: ' + JSON.stringify(prediction) });
     }
 
     let result = prediction;
@@ -58,7 +62,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (result.status !== 'succeeded') {
-      return res.status(500).json({ error: result.error || 'Generation failed' });
+      return res.status(500).json({ error: result.error || 'Generation failed after ' + attempts + ' attempts' });
     }
 
     return res.status(200).json({ imageUrl: result.output?.[0] || result.output });
