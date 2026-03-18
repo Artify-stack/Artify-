@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { imageBase64, style } = req.body;
-  if (!imageBase64 || !style) return res.status(400).json({ error: 'Missing imageBase64 or style' });
+  if (!imageBase64 || !style) return res.status(400).json({ error: 'Missing fields' });
 
   const stylePrompts = {
     'Anime Style': 'anime style illustration, manga art, vibrant colors, bold outlines, high quality',
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   const prompt = stylePrompts[style] || 'artistic illustration, high quality';
 
   try {
-    const startResponse = await fetch('https://api.replicate.com/v1/predictions', {
+    const startRes = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
@@ -41,8 +41,10 @@ export default async function handler(req, res) {
       }),
     });
 
-    const prediction = await startResponse.json();
-    if (!startResponse.ok || prediction.error) return res.status(500).json({ error: prediction.error || 'Failed to start' });
+    const prediction = await startRes.json();
+    if (!startRes.ok || prediction.error) {
+      return res.status(500).json({ error: prediction.error || 'Failed to start' });
+    }
 
     let result = prediction;
     let attempts = 0;
@@ -55,10 +57,13 @@ export default async function handler(req, res) {
       attempts++;
     }
 
-    if (result.status !== 'succeeded') return res.status(500).json({ error: result.error || 'Generation failed' });
+    if (result.status !== 'succeeded') {
+      return res.status(500).json({ error: result.error || 'Generation failed' });
+    }
+
     return res.status(200).json({ imageUrl: result.output?.[0] || result.output });
 
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
-    }
+}
