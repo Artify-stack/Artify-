@@ -30,7 +30,7 @@ module.exports = async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        version: '15a3689ee13b0d2616e98820eca31d4af4b36574b1e8b9ece76bce66b7e98b5',
+        version: '9a9b6aa5ac2793993aaaff48fd0e05fc5be213bc85a0bafd24e578d3bb81e628',
         input: {
           prompt: prompt,
           image: imageBase64,
@@ -47,7 +47,7 @@ module.exports = async function handler(req, res) {
     catch(e) { return res.status(500).json({ error: 'Replicate parse error: ' + text.slice(0,200) }); }
 
     if (!startRes.ok || prediction.error) {
-      return res.status(500).json({ error: prediction.error || 'Failed: ' + JSON.stringify(prediction) });
+      return res.status(500).json({ error: 'Failed: ' + JSON.stringify(prediction) });
     }
 
     let result = prediction;
