@@ -453,28 +453,54 @@
     const loader=document.getElementById('upload-loader');
     loader.style.display='block';
     document.getElementById('loader-emoji').textContent=styleEmojis[selectedStyle]||'🎨';
-    const steps=[{step:'UPLOADING PHOTO...',sub:'Preparing your image',pct:15},{step:'APPLYING '+selectedStyle.toUpperCase()+'...',sub:'AI is painting your photo',pct:45},{step:'ADDING FINE DETAILS...',sub:'Refining textures & colours',pct:75},{step:'FINISHING TOUCHES...',sub:'Almost ready!',pct:90}];
+    const steps=[{step:'PREPARING PROMPT...',sub:'Setting up your style',pct:20},{step:'GENERATING ART...',sub:'AI is creating your image',pct:50},{step:'ADDING DETAILS...',sub:'Almost there',pct:80},{step:'FINISHING...',sub:'Just a moment',pct:95}];
     let si=0;
-    const stepInterval=setInterval(()=>{if(si<steps.length){const s=steps[si++];document.getElementById('loader-step').textContent=s.step;document.getElementById('loader-substep').textContent=s.sub;document.getElementById('progress-text').textContent=s.step;document.getElementById('progress-pct').textContent=s.pct+'%';document.getElementById('progress-fill').style.width=s.pct+'%';}},700);
+    const stepInterval=setInterval(()=>{if(si<steps.length){const s=steps[si++];document.getElementById('loader-step').textContent=s.step;document.getElementById('loader-substep').textContent=s.sub;document.getElementById('progress-text').textContent=s.step;document.getElementById('progress-pct').textContent=s.pct+'%';document.getElementById('progress-fill').style.width=s.pct+'%';}},2000);
+
+    const stylePrompts={
+      'Anime Style':'anime style portrait illustration manga art vibrant colors bold outlines high quality digital art',
+      'Cyberpunk':'cyberpunk style portrait neon lights dystopian city electric colors high quality',
+      'Line Art':'minimal line art portrait clean ink drawing black and white elegant high quality',
+      'Watercolor':'watercolor portrait painting soft color washes artistic dreamy high quality',
+      'Oil Painting':'oil painting portrait classic fine art rich textures painterly high quality',
+      'Pixel Art':'pixel art portrait 16-bit retro game art style colorful high quality',
+      'Impressionist':'impressionist portrait painting Monet style soft light loose brushstrokes high quality',
+      'Ukiyo-e':'ukiyo-e Japanese woodblock print portrait flat colors bold outlines traditional art',
+    };
+
+    const prompt=encodeURIComponent(stylePrompts[selectedStyle]||'artistic portrait illustration high quality');
+    const seed=Math.floor(Math.random()*1000000);
+    const imageUrl=`https://image.pollinations.ai/prompt/${prompt}?width=512&height=512&seed=${seed}&nologo=true&model=flux`;
+
     try{
-      const response=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:fileBase64,style:selectedStyle})});
-      clearInterval(stepInterval);
-      document.getElementById('progress-fill').style.width='100%';
-      document.getElementById('progress-pct').textContent='100%';
-      const data=await response.json();
-      if(!response.ok||data.error)throw new Error(data.error||'Generation failed');
-      resultUrl=data.imageUrl;
-      loader.style.display='none';
-      document.getElementById('result-img').src=resultUrl;
-      document.getElementById('result-label').textContent=selectedStyle+' Transformation';
-      document.getElementById('result-view').style.display='block';
-      showToast('✦ Your artwork is ready!','gold');
+      // Load image directly in browser
+      const img=new Image();
+      img.crossOrigin='anonymous';
+      img.onload=function(){
+        clearInterval(stepInterval);
+        document.getElementById('progress-fill').style.width='100%';
+        document.getElementById('progress-pct').textContent='100%';
+        loader.style.display='none';
+        document.getElementById('result-img').src=imageUrl;
+        document.getElementById('result-label').textContent=selectedStyle+' Transformation';
+        document.getElementById('result-view').style.display='block';
+        resultUrl=imageUrl;
+        showToast('✦ Your artwork is ready!','gold');
+      };
+      img.onerror=function(){
+        clearInterval(stepInterval);
+        loader.style.display='none';
+        document.getElementById('upload-form').style.display='block';
+        showError('Generation failed. Please try again.');
+      };
+      img.src=imageUrl;
     }catch(err){
       clearInterval(stepInterval);
       loader.style.display='none';
       document.getElementById('upload-form').style.display='block';
-      showError('Generation failed: '+err.message);
+      showError('Error: '+err.message);
     }
+  }
   }
   function downloadResult(){if(!resultUrl)return;const a=document.createElement('a');a.href=resultUrl;a.download='artify-'+selectedStyle.replace(/ /g,'-').toLowerCase()+'.png';a.click();showToast('↓ Downloading...','gold');}
   function resetUpload(){fileBase64=null;resultUrl=null;document.getElementById('upload-form').style.display='block';document.getElementById('upload-zone').style.display='block';document.getElementById('upload-preview').style.display='none';document.getElementById('upload-loader').style.display='none';document.getElementById('result-view').style.display='none';document.getElementById('file-input').value='';document.getElementById('progress-fill').style.width='0%';hideError();}
