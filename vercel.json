@@ -1,4 +1,11 @@
 {
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/generate.js",
+      "use": "@vercel/node"
+    }
+  ],
   "rewrites": [
     { "source": "/api/generate", "destination": "/api/generate.js" },
     { "source": "/(.*)", "destination": "/public/$1" }
