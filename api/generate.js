@@ -22,8 +22,30 @@ module.exports = async function handler(req, res) {
 
   const prompt = encodeURIComponent(stylePrompts[style] || 'artistic portrait illustration high quality');
   const seed = Math.floor(Math.random() * 1000000);
-  const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=512&height=512&seed=${seed}&nologo=true`;
+  const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=512&height=512&seed=${seed}&nologo=true&model=flux`;
 
-  // Return the URL directly — browser fetches it, no timeout issue
-  return res.status(200).json({ imageUrl });
+  // Fetch the image and wait for it fully
+  try {
+    const response = await fetch(imageUrl, {
+      headers: { 'Accept': 'image/jpeg,image/png,image/*' }
+    });
+
+    if (!response.ok) {
+      return res.status(500).json({ error: 'Pollinations returned: ' + response.status });
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    if (buffer.length < 1000) {
+      return res.status(500).json({ error: 'Image too small, generation may have failed. Please try again.' });
+    }
+
+    const base64 = 'data:' + contentType + ';base64,' + buffer.toString('base64');
+    return res.status(200).json({ imageUrl: base64 });
+
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 }
