@@ -10,34 +10,20 @@ module.exports = async function handler(req, res) {
   if (!style) return res.status(400).json({ error: 'Missing style' });
 
   const stylePrompts = {
-    'Anime Style': 'anime style portrait illustration, manga art, vibrant colors, bold outlines, high quality digital art',
-    'Cyberpunk': 'cyberpunk style portrait, neon lights, dystopian city, electric colors, high quality',
-    'Line Art': 'minimal line art portrait, clean ink drawing, black and white, elegant, high quality',
-    'Watercolor': 'watercolor portrait painting, soft color washes, artistic, dreamy, high quality',
-    'Oil Painting': 'oil painting portrait, classic fine art, rich textures, painterly, high quality',
-    'Pixel Art': 'pixel art portrait, 16-bit retro game art style, colorful, high quality',
-    'Impressionist': 'impressionist portrait painting, Monet style, soft light, loose brushstrokes, high quality',
-    'Ukiyo-e': 'ukiyo-e Japanese woodblock print portrait, flat colors, bold outlines, traditional art',
+    'Anime Style': 'anime style portrait illustration manga art vibrant colors bold outlines high quality digital art',
+    'Cyberpunk': 'cyberpunk style portrait neon lights dystopian city electric colors high quality',
+    'Line Art': 'minimal line art portrait clean ink drawing black and white elegant high quality',
+    'Watercolor': 'watercolor portrait painting soft color washes artistic dreamy high quality',
+    'Oil Painting': 'oil painting portrait classic fine art rich textures painterly high quality',
+    'Pixel Art': 'pixel art portrait 16-bit retro game art style colorful high quality',
+    'Impressionist': 'impressionist portrait painting Monet style soft light loose brushstrokes high quality',
+    'Ukiyo-e': 'ukiyo-e Japanese woodblock print portrait flat colors bold outlines traditional art',
   };
 
-  const prompt = encodeURIComponent(stylePrompts[style] || 'artistic portrait illustration, high quality');
+  const prompt = encodeURIComponent(stylePrompts[style] || 'artistic portrait illustration high quality');
   const seed = Math.floor(Math.random() * 1000000);
-  const url = `https://image.pollinations.ai/prompt/${prompt}?width=512&height=512&seed=${seed}&nologo=true`;
+  const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=512&height=512&seed=${seed}&nologo=true`;
 
-  try {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      return res.status(500).json({ error: 'Image generation failed: ' + response.status });
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64 = 'data:image/jpeg;base64,' + buffer.toString('base64');
-
-    return res.status(200).json({ imageUrl: base64 });
-
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
+  // Return the URL directly — browser fetches it, no timeout issue
+  return res.status(200).json({ imageUrl });
 }
