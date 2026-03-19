@@ -454,27 +454,16 @@
     const prompt=encodeURIComponent(stylePrompts[selectedStyle]||'artistic portrait illustration high quality');
     const seed=Math.floor(Math.random()*1000000);
     const imageUrl='https://image.pollinations.ai/prompt/'+prompt+'?width=512&height=512&seed='+seed+'&nologo=true&model=flux';
-    const img=new Image();
-    img.crossOrigin='anonymous';
-    img.onload=function(){
-      clearInterval(stepInterval);
-      document.getElementById('progress-fill').style.width='100%';
-      document.getElementById('progress-pct').textContent='100%';
-      loader.style.display='none';
-      document.getElementById('result-img').src=imageUrl;
-      document.getElementById('result-label').textContent=selectedStyle+' Transformation';
-      document.getElementById('result-view').style.display='block';
-      resultUrl=imageUrl;
-      showToast('✦ Your artwork is ready!','gold');
-    };
-    img.onerror=function(){
-      clearInterval(stepInterval);
-      loader.style.display='none';
-      document.getElementById('upload-form').style.display='block';
-      showError('Generation failed. Please try again.');
-    };
-    img.src=imageUrl;
-  }
+    // Skip CORS check, show image directly
+    clearInterval(stepInterval);
+    document.getElementById('progress-fill').style.width='100%';
+    document.getElementById('progress-pct').textContent='100%';
+    loader.style.display='none';
+    document.getElementById('result-img').src=imageUrl;
+    document.getElementById('result-label').textContent=selectedStyle+' Transformation';
+    document.getElementById('result-view').style.display='block';
+    resultUrl=imageUrl;
+    showToast('✦ Your artwork is ready!','gold');
   function downloadResult(){if(!resultUrl)return;const a=document.createElement('a');a.href=resultUrl;a.download='artify-'+selectedStyle.replace(/ /g,'-').toLowerCase()+'.png';a.target='_blank';a.click();showToast('↓ Opening image...','gold');}
   function resetUpload(){fileBase64=null;resultUrl=null;document.getElementById('upload-form').style.display='block';document.getElementById('upload-zone').style.display='block';document.getElementById('upload-preview').style.display='none';document.getElementById('upload-loader').style.display='none';document.getElementById('result-view').style.display='none';document.getElementById('file-input').value='';document.getElementById('progress-fill').style.width='0%';hideError();}
   let qty=1;
