@@ -23,13 +23,8 @@ module.exports = async function handler(req, res) {
   const prompt = stylePrompts[style] || 'artistic illustration high quality';
 
   try {
-    // Convert base64 to binary
-    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-    const imageBuffer = Buffer.from(base64Data, 'base64');
-
-    // Call Hugging Face Stable Diffusion img2img
     const response = await fetch(
-      'https://router.huggingface.co/hf-inference/models/runwayml/stable-diffusion-v1-5',
+      'https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0/text-to-image',
       {
         method: 'POST',
         headers: {
@@ -39,7 +34,7 @@ module.exports = async function handler(req, res) {
         body: JSON.stringify({
           inputs: prompt,
           parameters: {
-            num_inference_steps: 25,
+            num_inference_steps: 20,
             guidance_scale: 7.5,
             width: 512,
             height: 512,
@@ -50,10 +45,9 @@ module.exports = async function handler(req, res) {
 
     if (!response.ok) {
       const errText = await response.text();
-      return res.status(500).json({ error: 'HF error: ' + errText.slice(0, 200) });
+      return res.status(500).json({ error: 'HF error: ' + errText.slice(0, 300) });
     }
 
-    // Response is an image binary — convert to base64
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const resultBase64 = 'data:image/jpeg;base64,' + buffer.toString('base64');
