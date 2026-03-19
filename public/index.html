@@ -500,7 +500,7 @@
       document.getElementById('upload-form').style.display='block';
       showError('Error: '+err.message);
     }
-  }
+  
   }
   function downloadResult(){if(!resultUrl)return;const a=document.createElement('a');a.href=resultUrl;a.download='artify-'+selectedStyle.replace(/ /g,'-').toLowerCase()+'.png';a.click();showToast('↓ Downloading...','gold');}
   function resetUpload(){fileBase64=null;resultUrl=null;document.getElementById('upload-form').style.display='block';document.getElementById('upload-zone').style.display='block';document.getElementById('upload-preview').style.display='none';document.getElementById('upload-loader').style.display='none';document.getElementById('result-view').style.display='none';document.getElementById('file-input').value='';document.getElementById('progress-fill').style.width='0%';hideError();}
