@@ -6,8 +6,8 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { imageBase64, style } = req.body;
-  if (!imageBase64 || !style) return res.status(400).json({ error: 'Missing fields' });
+  const { style } = req.body;
+  if (!style) return res.status(400).json({ error: 'Missing style' });
 
   const stylePrompts = {
     'Anime Style': 'anime style illustration, manga art, vibrant colors, bold outlines, high quality',
@@ -24,7 +24,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const response = await fetch(
-      'https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0/text-to-image',
+      'https://router.huggingface.co/hf-inference/v1/text-to-image',
       {
         method: 'POST',
         headers: {
@@ -33,6 +33,7 @@ module.exports = async function handler(req, res) {
         },
         body: JSON.stringify({
           inputs: prompt,
+          model: 'stabilityai/stable-diffusion-2-1',
           parameters: {
             num_inference_steps: 20,
             guidance_scale: 7.5,
@@ -50,7 +51,7 @@ module.exports = async function handler(req, res) {
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const resultBase64 = 'data:image/jpeg;base64,' + buffer.toString('base64');
+    const resultBase64 = 'data:image/png;base64,' + buffer.toString('base64');
 
     return res.status(200).json({ imageUrl: resultBase64 });
 
@@ -58,3 +59,4 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+            
