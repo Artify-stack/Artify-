@@ -28,8 +28,8 @@ module.exports = async function handler(req, res) {
     const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp-image-generation',
-      contents: prompt,
+      model: 'gemini-2.0-flash-preview-image-generation',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
@@ -44,12 +44,10 @@ module.exports = async function handler(req, res) {
     }
 
     if (!imageBase64) {
-      return res.status(500).json({ error: 'No image returned from Google' });
+      return res.status(500).json({ error: 'No image in response: ' + JSON.stringify(response.candidates[0].content.parts).slice(0, 200) });
     }
 
-    return res.status(200).json({
-      imageUrl: 'data:image/png;base64,' + imageBase64
-    });
+    return res.status(200).json({ imageUrl: 'data:image/png;base64,' + imageBase64 });
 
   } catch (err) {
     return res.status(500).json({ error: err.message });
