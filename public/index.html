@@ -19,6 +19,7 @@
   ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-track { background: var(--cream); }
   ::-webkit-scrollbar-thumb { background: var(--gold); }
+  body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 998; opacity: 0.025; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
   nav { position: fixed; top: 0; left: 0; right: 0; z-index: 200; display: flex; align-items: center; justify-content: space-between; padding: 1.6rem 4rem; transition: background 0.4s, box-shadow 0.4s; }
   nav.scrolled { background: rgba(245,240,232,0.94); box-shadow: 0 1px 0 var(--ink-faint); backdrop-filter: blur(12px); }
   .nav-logo { font-family: var(--serif); font-weight: 700; font-size: 1.3rem; letter-spacing: 0.15em; cursor: pointer; }
@@ -118,7 +119,7 @@
   .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s ease; }
   .reveal.visible { opacity: 1; transform: translateY(0); }
   .reveal-delay-1 { transition-delay: 0.12s; } .reveal-delay-2 { transition-delay: 0.24s; } .reveal-delay-3 { transition-delay: 0.36s; }
-  .modal-overlay { position: fixed; inset: 0; z-index: 500; background: rgba(26,22,18,0.6); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 2rem; }
+  .modal-overlay { position: fixed; inset: 0; z-index: 500; background: rgba(26,22,18,0.6); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 2rem; animation: fadeIn 0.25s ease; }
   .modal-overlay.open { display: flex; }
   .modal-box { background: var(--cream); max-width: 600px; width: 100%; border: 1px solid var(--ink-faint); position: relative; animation: slideUp 0.3s ease; max-height: 92vh; overflow-y: auto; }
   .modal-header { padding: 2rem 2rem 1.5rem; border-bottom: 1px solid var(--ink-faint); display: flex; justify-content: space-between; align-items: flex-start; position: sticky; top: 0; background: var(--cream); z-index: 2; }
@@ -184,6 +185,7 @@
     #cta, #styles-sec, #products { padding: 5rem 2rem; } #how { padding: 5rem 2rem; }
     .gold-divider { margin: 0 2rem; } .product-detail { grid-template-columns: 1fr; }
     .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+    .style-select-grid { grid-template-columns: repeat(4, 1fr); }
   }
 </style>
 </head>
@@ -222,7 +224,11 @@
 </section>
 <div class="gold-divider"></div>
 <section id="styles-sec">
-  <div class="reveal"><div class="sec-label">✦ ART STYLES</div><h2 class="sec-h2">Choose Your <em>Aesthetic</em></h2><p class="sec-sub">From dreamy anime to raw cyberpunk — every style transforms your photo into something extraordinary.</p></div>
+  <div class="reveal">
+    <div class="sec-label">✦ ART STYLES</div>
+    <h2 class="sec-h2">Choose Your <em>Aesthetic</em></h2>
+    <p class="sec-sub">From dreamy anime to raw cyberpunk — every style transforms your photo into something extraordinary.</p>
+  </div>
   <div class="styles-grid">
     <div class="style-card active reveal" onclick="selectAndUpload(this,'Anime Style')"><div class="style-emoji-wrap">🌸</div><div class="style-name">Anime Style</div><div class="style-desc">Soft lines, vibrant colors, manga-inspired character art.</div><div class="style-arrow">TRY THIS STYLE →</div></div>
     <div class="style-card reveal reveal-delay-1" onclick="selectAndUpload(this,'Cyberpunk')"><div class="style-emoji-wrap">⚡</div><div class="style-name">Cyberpunk</div><div class="style-desc">Neon chaos, dystopian vibes, glitch aesthetics.</div><div class="style-arrow">TRY THIS STYLE →</div></div>
@@ -304,13 +310,13 @@
         <div class="error-box" id="error-box"></div>
         <div class="modal-actions">
           <button class="btn-outline" onclick="closeModal('upload-modal')">CANCEL</button>
-          <button class="btn-ink" onclick="generateArt()">GENERATE ART →</button>
+          <button class="btn-ink" onclick="generateArt()" id="generate-btn">GENERATE ART →</button>
         </div>
       </div>
       <div class="loader" id="upload-loader">
         <span class="loader-art" id="loader-emoji">🌸</span>
         <div class="loader-spinner"></div>
-        <div class="loader-step" id="loader-step">GENERATING ART...</div>
+        <div class="loader-step" id="loader-step">UPLOADING PHOTO...</div>
         <div class="loader-substep" id="loader-substep">This takes 20–40 seconds</div>
         <div class="progress-wrap">
           <div class="progress-label"><span id="progress-text">Starting...</span><span id="progress-pct">0%</span></div>
@@ -395,8 +401,8 @@
 <div class="modal-overlay" id="privacy-modal" onclick="overlayClose(event,'privacy-modal')">
   <div class="modal-box"><div class="modal-header"><h2 class="modal-title">Privacy <em>Policy</em></h2><button class="modal-close" onclick="closeModal('privacy-modal')">✕</button></div>
   <div class="modal-body" style="font-size:0.88rem;line-height:1.8;color:var(--ink-light)">
-    <p style="margin-bottom:1rem"><strong style="color:var(--ink);font-family:var(--serif)">Data We Collect</strong><br>We collect only what's needed. Photos are deleted after 24 hours.</p>
-    <p style="margin-bottom:1rem"><strong style="color:var(--ink);font-family:var(--serif)">How We Use It</strong><br>Your photos are used solely to generate artwork. We never share them.</p>
+    <p style="margin-bottom:1rem"><strong style="color:var(--ink);font-family:var(--serif)">Data We Collect</strong><br>We collect only what's needed: your email, uploaded photos (temporarily), and generated artwork. Photos are deleted after 24 hours.</p>
+    <p style="margin-bottom:1rem"><strong style="color:var(--ink);font-family:var(--serif)">How We Use It</strong><br>Your photos are used solely to generate your requested artwork. We never share them with third parties.</p>
     <p><strong style="color:var(--ink);font-family:var(--serif)">Your Rights</strong><br>Request deletion anytime at privacy@artify.art</p>
   </div></div>
 </div>
@@ -404,8 +410,8 @@
   <div class="modal-box"><div class="modal-header"><h2 class="modal-title">Terms of <em>Service</em></h2><button class="modal-close" onclick="closeModal('terms-modal')">✕</button></div>
   <div class="modal-body" style="font-size:0.88rem;line-height:1.8;color:var(--ink-light)">
     <p style="margin-bottom:1rem"><strong style="color:var(--ink);font-family:var(--serif)">Ownership</strong><br>You retain full ownership of artwork generated from your photos.</p>
-    <p style="margin-bottom:1rem"><strong style="color:var(--ink);font-family:var(--serif)">Acceptable Use</strong><br>Do not upload photos of others without consent.</p>
-    <p><strong style="color:var(--ink);font-family:var(--serif)">Refunds</strong><br>Merchandise returnable within 30 days if defective.</p>
+    <p style="margin-bottom:1rem"><strong style="color:var(--ink);font-family:var(--serif)">Acceptable Use</strong><br>Do not upload photos of others without consent or generate illegal content.</p>
+    <p><strong style="color:var(--ink);font-family:var(--serif)">Refunds</strong><br>Digital downloads non-refundable. Merchandise returnable within 30 days if defective.</p>
   </div></div>
 </div>
 <div class="toast" id="toast"></div>
@@ -423,7 +429,7 @@
   let toastTimer;
   function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(type?' '+type:'')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3000);}
   function selectStyle(el,name){document.querySelectorAll('.style-card').forEach(c=>c.classList.remove('active'));el.classList.add('active');}
-  function selectAndUpload(el,name){selectStyle(el,name);selectedStyle=name;openModal('upload-modal');}
+  function selectAndUpload(el,name){selectStyle(el,name);document.querySelectorAll('.style-chip').forEach(c=>{c.classList.remove('selected');if(c.getAttribute('onclick')?.includes(name))c.classList.add('selected');});selectedStyle=name;openModal('upload-modal');}
   let selectedStyle='Anime Style',fileBase64=null,resultUrl=null;
   function pickStyle(el,name){document.querySelectorAll('.style-chip').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');selectedStyle=name;}
   function dragOver(e){e.preventDefault();document.getElementById('upload-zone').classList.add('drag-over');}
@@ -439,7 +445,7 @@
   }
   function showError(msg){const b=document.getElementById('error-box');b.textContent='⚠ '+msg;b.style.display='block';}
   function hideError(){document.getElementById('error-box').style.display='none';}
-  function generateArt(){
+  async function generateArt(){
     if(!fileBase64){showError('Please upload a photo first.');return;}
     hideError();
     const styleEmojis={'Anime Style':'🌸','Cyberpunk':'⚡','Line Art':'✦','Watercolor':'💧','Oil Painting':'🎭','Pixel Art':'🕹','Impressionist':'🌅','Ukiyo-e':'🗻'};
@@ -450,21 +456,53 @@
     const steps=[{step:'PREPARING PROMPT...',sub:'Setting up your style',pct:20},{step:'GENERATING ART...',sub:'AI is creating your image',pct:50},{step:'ADDING DETAILS...',sub:'Almost there',pct:80},{step:'FINISHING...',sub:'Just a moment',pct:95}];
     let si=0;
     const stepInterval=setInterval(()=>{if(si<steps.length){const s=steps[si++];document.getElementById('loader-step').textContent=s.step;document.getElementById('loader-substep').textContent=s.sub;document.getElementById('progress-text').textContent=s.step;document.getElementById('progress-pct').textContent=s.pct+'%';document.getElementById('progress-fill').style.width=s.pct+'%';}},2000);
-    const stylePrompts={'Anime Style':'anime style portrait illustration manga art vibrant colors bold outlines high quality digital art','Cyberpunk':'cyberpunk style portrait neon lights dystopian city electric colors high quality','Line Art':'minimal line art portrait clean ink drawing black and white elegant high quality','Watercolor':'watercolor portrait painting soft color washes artistic dreamy high quality','Oil Painting':'oil painting portrait classic fine art rich textures painterly high quality','Pixel Art':'pixel art portrait 16-bit retro game art style colorful high quality','Impressionist':'impressionist portrait painting Monet style soft light loose brushstrokes high quality','Ukiyo-e':'ukiyo-e Japanese woodblock print portrait flat colors bold outlines traditional art'};
+
+    const stylePrompts={
+      'Anime Style':'anime style portrait illustration manga art vibrant colors bold outlines high quality digital art',
+      'Cyberpunk':'cyberpunk style portrait neon lights dystopian city electric colors high quality',
+      'Line Art':'minimal line art portrait clean ink drawing black and white elegant high quality',
+      'Watercolor':'watercolor portrait painting soft color washes artistic dreamy high quality',
+      'Oil Painting':'oil painting portrait classic fine art rich textures painterly high quality',
+      'Pixel Art':'pixel art portrait 16-bit retro game art style colorful high quality',
+      'Impressionist':'impressionist portrait painting Monet style soft light loose brushstrokes high quality',
+      'Ukiyo-e':'ukiyo-e Japanese woodblock print portrait flat colors bold outlines traditional art',
+    };
+
     const prompt=encodeURIComponent(stylePrompts[selectedStyle]||'artistic portrait illustration high quality');
     const seed=Math.floor(Math.random()*1000000);
-    const imageUrl='https://image.pollinations.ai/prompt/'+prompt+'?width=512&height=512&seed='+seed+'&nologo=true&model=flux';
-    // Skip CORS check, show image directly
-    clearInterval(stepInterval);
-    document.getElementById('progress-fill').style.width='100%';
-    document.getElementById('progress-pct').textContent='100%';
-    loader.style.display='none';
-    document.getElementById('result-img').src=imageUrl;
-    document.getElementById('result-label').textContent=selectedStyle+' Transformation';
-    document.getElementById('result-view').style.display='block';
-    resultUrl=imageUrl;
-    showToast('✦ Your artwork is ready!','gold');
-  function downloadResult(){if(!resultUrl)return;const a=document.createElement('a');a.href=resultUrl;a.download='artify-'+selectedStyle.replace(/ /g,'-').toLowerCase()+'.png';a.target='_blank';a.click();showToast('↓ Opening image...','gold');}
+    const imageUrl=`https://image.pollinations.ai/prompt/${prompt}?width=512&height=512&seed=${seed}&nologo=true&model=flux`;
+
+    try{
+      // Load image directly in browser
+      const img=new Image();
+      img.crossOrigin='anonymous';
+      img.onload=function(){
+        clearInterval(stepInterval);
+        document.getElementById('progress-fill').style.width='100%';
+        document.getElementById('progress-pct').textContent='100%';
+        loader.style.display='none';
+        document.getElementById('result-img').src=imageUrl;
+        document.getElementById('result-label').textContent=selectedStyle+' Transformation';
+        document.getElementById('result-view').style.display='block';
+        resultUrl=imageUrl;
+        showToast('✦ Your artwork is ready!','gold');
+      };
+      img.onerror=function(){
+        clearInterval(stepInterval);
+        loader.style.display='none';
+        document.getElementById('upload-form').style.display='block';
+        showError('Generation failed. Please try again.');
+      };
+      img.src=imageUrl;
+    }catch(err){
+      clearInterval(stepInterval);
+      loader.style.display='none';
+      document.getElementById('upload-form').style.display='block';
+      showError('Error: '+err.message);
+    }
+  }
+  }
+  function downloadResult(){if(!resultUrl)return;const a=document.createElement('a');a.href=resultUrl;a.download='artify-'+selectedStyle.replace(/ /g,'-').toLowerCase()+'.png';a.click();showToast('↓ Downloading...','gold');}
   function resetUpload(){fileBase64=null;resultUrl=null;document.getElementById('upload-form').style.display='block';document.getElementById('upload-zone').style.display='block';document.getElementById('upload-preview').style.display='none';document.getElementById('upload-loader').style.display='none';document.getElementById('result-view').style.display='none';document.getElementById('file-input').value='';document.getElementById('progress-fill').style.width='0%';hideError();}
   let qty=1;
   function openProductModal(name,emoji,price,desc){const parts=name.split(' ');document.getElementById('pm-title').innerHTML=parts.slice(0,-1).join(' ')+' <em>'+parts.slice(-1)+'</em>';document.getElementById('pm-emoji').textContent=emoji;document.getElementById('pm-price').textContent=price;document.getElementById('pm-desc').textContent=desc;qty=1;document.getElementById('qty-display').textContent=1;openModal('product-modal');}
