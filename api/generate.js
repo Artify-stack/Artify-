@@ -10,7 +10,7 @@ module.exports = async function handler(req, res) {
   if (!style) return res.status(400).json({ error: 'Missing style' });
 
   const stylePrompts = {
-    'Anime Style': 'anime style illustration manga art vibrant colors bold outlines high quality',
+    'Anime Style': 'anime style illustration, manga art, vibrant colors, bold outlines, high quality',
     'Cyberpunk': 'cyberpunk neon lights dystopian electric colors glitch effects high quality',
     'Line Art': 'minimal line art clean ink drawing black and white elegant high quality',
     'Watercolor': 'watercolor painting soft washes artistic dreamy high quality',
@@ -24,14 +24,18 @@ module.exports = async function handler(req, res) {
 
   try {
     const response = await fetch(
-      'https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell/text-to-image',
+      'https://router.huggingface.co/hf-inference/v1',
       {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.HUGGING_FACE_TOKEN}`,
           'Content-Type': 'application/json',
+          'x-use-cache': 'false',
         },
-        body: JSON.stringify({ inputs: prompt }),
+        body: JSON.stringify({
+          inputs: prompt,
+          model: 'black-forest-labs/FLUX.1-schnell',
+        }),
       }
     );
 
@@ -43,7 +47,6 @@ module.exports = async function handler(req, res) {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const resultBase64 = 'data:image/png;base64,' + buffer.toString('base64');
-
     return res.status(200).json({ imageUrl: resultBase64 });
 
   } catch (err) {
