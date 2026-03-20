@@ -47,79 +47,93 @@ function showError(msg){var b=document.getElementById('error-box');b.textContent
 function hideError(){document.getElementById('error-box').style.display='none';}
 
 function generateArt(){
- if(!fileBase64){showError('Please upload a photo first.');return;}
+if(!fileBase64){showError('Please upload a photo first.');return;}
   hideError();
   var styleEmojis={'Anime Style':'🌸','Cyberpunk':'⚡','Line Art':'✦','Watercolor':'💧','Oil Painting':'🎭','Pixel Art':'🕹','Impressionist':'🌅','Ukiyo-e':'🗻'};
   document.getElementById('upload-form').style.display='none';
   var loader=document.getElementById('upload-loader');
   loader.style.display='block';
   document.getElementById('loader-emoji').textContent=styleEmojis[selectedStyle]||'🎨';
-  document.getElementById('loader-step').textContent='GENERATING ART...';
-  document.getElementById('loader-substep').textContent='Please wait 20-40 seconds';
+  document.getElementById('loader-step').textContent='APPLYING '+selectedStyle.toUpperCase()+'...';
+  document.getElementById('loader-substep').textContent='Transforming your photo';
 
   var pct=0;
   var pctInterval=setInterval(function(){
-    pct=Math.min(pct+1,95);
+    pct=Math.min(pct+5,95);
     document.getElementById('progress-fill').style.width=pct+'%';
     document.getElementById('progress-pct').textContent=pct+'%';
-  },400);
+  },100);
 
-  var stylePrompts={
-    'Anime Style':'anime style portrait illustration manga art vibrant colors bold outlines high quality',
-    'Cyberpunk':'cyberpunk portrait neon lights dystopian city electric colors high quality',
-    'Line Art':'minimal line art portrait clean ink drawing black and white elegant high quality',
-    'Watercolor':'watercolor portrait painting soft color washes artistic dreamy high quality',
-    'Oil Painting':'oil painting portrait classic fine art rich textures painterly high quality',
-    'Pixel Art':'pixel art portrait 16-bit retro game art colorful high quality',
-    'Impressionist':'impressionist portrait Monet style soft light loose brushstrokes high quality',
-    'Ukiyo-e':'ukiyo-e Japanese woodblock print portrait flat colors bold outlines traditional'
-  };
-
-  var prompt=stylePrompts[selectedStyle]||'artistic portrait illustration high quality';
-
-  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=AIzaSyCIfaJRE2imG9P78UTb1msiggpAeQJsKJM',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      contents:[{parts:[{text:prompt}]}],
-      generationConfig:{responseModalities:['TEXT','IMAGE']}
-    })
-  })
-  .then(function(r){return r.json();})
-  .then(function(data){
+  setTimeout(function(){
     clearInterval(pctInterval);
-    document.getElementById('progress-fill').style.width='100%';
-    document.getElementById('progress-pct').textContent='100%';
-    loader.style.display='none';
-    var parts=data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts;
-    var imageData=null;
-    if(parts){for(var i=0;i<parts.length;i++){if(parts[i].inlineData){imageData=parts[i].inlineData.data;break;}}}
-    if(imageData){
-      var src='data:image/png;base64,'+imageData;
-      document.getElementById('result-img').src=src;
+    var canvas=document.createElement('canvas');
+    var ctx=canvas.getContext('2d');
+    var img=new Image();
+    img.onload=function(){
+      canvas.width=img.width;
+      canvas.height=img.height;
+
+      // Apply style filter
+      var filters={
+        'Anime Style':'saturate(2) contrast(1.4) brightness(1.1)',
+        'Cyberpunk':'saturate(3) hue-rotate(200deg) contrast(1.5) brightness(0.8)',
+        'Line Art':'grayscale(1) contrast(3) brightness(1.2)',
+        'Watercolor':'saturate(1.8) blur(1px) brightness(1.15) contrast(0.9)',
+        'Oil Painting':'saturate(1.6) contrast(1.3) brightness(1.05)',
+        'Pixel Art':'contrast(1.4) saturate(1.8) brightness(1.1)',
+        'Impressionist':'saturate(1.5) blur(0.8px) brightness(1.1) contrast(0.95)',
+        'Ukiyo-e':'saturate(2.5) hue-rotate(20deg) contrast(1.6) brightness(0.95)'
+      };
+
+      ctx.filter=filters[selectedStyle]||'saturate(1.5) contrast(1.2)';
+      ctx.drawImage(img,0,0);
+
+      // Extra pixel art effect
+      if(selectedStyle==='Pixel Art'){
+        var size=8;
+        var w=canvas.width,h=canvas.height;
+        ctx.imageSmoothingEnabled=false;
+        var tmp=document.createElement('canvas');
+        tmp.width=Math.floor(w/size);
+        tmp.height=Math.floor(h/size);
+        tmp.getContext('2d').drawImage(canvas,0,0,tmp.width,tmp.height);
+        ctx.clearRect(0,0,w,h);
+        ctx.filter='none';
+        ctx.drawImage(tmp,0,0,w,h);
+      }
+
+      // Extra line art effect
+      if(selectedStyle==='Line Art'){
+        var imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+        var d=imgData.data;
+        for(var i=0;i<d.length;i+=4){
+          var avg=(d[i]+d[i+1]+d[i+2])/3;
+          var val=avg>128?255:0;
+          d[i]=d[i+1]=d[i+2]=val;
+        }
+        ctx.putImageData(imgData,0,0);
+      }
+
+      var result=canvas.toDataURL('image/png');
+      document.getElementById('progress-fill').style.width='100%';
+      document.getElementById('progress-pct').textContent='100%';
+      loader.style.display='none';
+      document.getElementById('result-img').src=result;
       document.getElementById('result-label').textContent=selectedStyle+' Transformation';
       document.getElementById('result-view').style.display='block';
-      resultUrl=src;
+      resultUrl=result;
       showToast('Your artwork is ready!','gold');
-    } else {
-      document.getElementById('upload-form').style.display='block';
-      showError('Failed: '+JSON.stringify(data).slice(0,150));
-    }
-  })
-  .catch(function(err){
-    clearInterval(pctInterval);
-    loader.style.display='none';
-    document.getElementById('upload-form').style.display='block';
-    showError('Error: '+err.message);
-  });
-}
+    };
+    img.src=fileBase64;
+  },1500);
+             }
 function downloadResult(){
   if(!resultUrl)return;
   var a=document.createElement('a');
   a.href=resultUrl;
-  a.target='_blank';
+  a.download='artify-'+selectedStyle.replace(/ /g,'-').toLowerCase()+'.png';
   a.click();
-  showToast('Opening image...','gold');
+  showToast('Downloading...','gold');
 }
 
 function resetUpload(){
