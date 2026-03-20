@@ -3,15 +3,14 @@ var fileBase64=null;
 var resultUrl=null;
 var qty=1;
 
-function scrollToTop(){window.scrollTo({top:0,behavior:'smooth'});}
-function scrollTo(id){var el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
-
 var navbar=document.getElementById('navbar');
 window.addEventListener('scroll',function(){navbar.classList.toggle('scrolled',window.scrollY>40);});
 
 var revealObs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.1});
 document.querySelectorAll('.reveal').forEach(function(el){revealObs.observe(el);});
 
+function scrollToTop(){window.scrollTo({top:0,behavior:'smooth'});}
+function scrollTo(id){var el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
 function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
 function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
 function overlayClose(e,id){if(e.target===document.getElementById(id))closeModal(id);}
@@ -78,7 +77,7 @@ function generateArt(){
 
   var prompt=encodeURIComponent(stylePrompts[selectedStyle]||'artistic portrait illustration high quality');
   var seed=Math.floor(Math.random()*1000000);
-  var imageUrl='https://image.pollinations.ai/prompt/'+prompt+'?width=512&height=512&seed='+seed+'&nologo=true&model=flux';
+  var imageUrl='https://image.pollinations.ai/prompt/'+prompt+'?width=512&height=512&seed='+seed+'&nologo=true&model=flux&nofeed=true';
 
   setTimeout(function(){
     clearInterval(pctInterval);
@@ -90,13 +89,16 @@ function generateArt(){
     document.getElementById('result-view').style.display='block';
     resultUrl=imageUrl;
     showToast('Your artwork is ready!','gold');
-  },5000);
+  },8000);
 }
 
 function downloadResult(){
   if(!resultUrl)return;
-  window.open(resultUrl,'_blank');
-  showToast('Opening image in new tab...','gold');
+  var a=document.createElement('a');
+  a.href=resultUrl;
+  a.target='_blank';
+  a.click();
+  showToast('Opening image...','gold');
 }
 
 function resetUpload(){
