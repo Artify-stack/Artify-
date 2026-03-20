@@ -76,16 +76,14 @@ function generateArt(){
   };
 
   var prompt=stylePrompts[selectedStyle]||'artistic portrait illustration high quality';
-  var seed=Math.floor(Math.random()*1000000);
 
-  var formData=new FormData();
-  formData.append('text',prompt);
-  formData.append('grid_size','1');
-
-  fetch('https://api.deepai.org/api/text2img',{
+  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=AIzaSyCIfaJRE2imG9P78UTb1msiggpAeQJsKJM',{
     method:'POST',
-    headers:{'api-key':'quickstart-QUdJIGlzIGF3ZXNvbWU'},
-    body:formData
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      contents:[{parts:[{text:prompt}]}],
+      generationConfig:{responseModalities:['TEXT','IMAGE']}
+    })
   })
   .then(function(r){return r.json();})
   .then(function(data){
@@ -93,15 +91,19 @@ function generateArt(){
     document.getElementById('progress-fill').style.width='100%';
     document.getElementById('progress-pct').textContent='100%';
     loader.style.display='none';
-    if(data.output_url){
-      document.getElementById('result-img').src=data.output_url;
+    var parts=data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts;
+    var imageData=null;
+    if(parts){for(var i=0;i<parts.length;i++){if(parts[i].inlineData){imageData=parts[i].inlineData.data;break;}}}
+    if(imageData){
+      var src='data:image/png;base64,'+imageData;
+      document.getElementById('result-img').src=src;
       document.getElementById('result-label').textContent=selectedStyle+' Transformation';
       document.getElementById('result-view').style.display='block';
-      resultUrl=data.output_url;
+      resultUrl=src;
       showToast('Your artwork is ready!','gold');
     } else {
       document.getElementById('upload-form').style.display='block';
-      showError('Generation failed. Please try again.');
+      showError('Failed: '+JSON.stringify(data).slice(0,150));
     }
   })
   .catch(function(err){
@@ -110,7 +112,7 @@ function generateArt(){
     document.getElementById('upload-form').style.display='block';
     showError('Error: '+err.message);
   });
-} 
+}
 function downloadResult(){
   if(!resultUrl)return;
   var a=document.createElement('a');
