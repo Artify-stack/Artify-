@@ -47,7 +47,7 @@ function showError(msg){var b=document.getElementById('error-box');b.textContent
 function hideError(){document.getElementById('error-box').style.display='none';}
 
 function generateArt(){
-  if(!fileBase64){showError('Please upload a photo first.');return;}
+ if(!fileBase64){showError('Please upload a photo first.');return;}
   hideError();
   var styleEmojis={'Anime Style':'🌸','Cyberpunk':'⚡','Line Art':'✦','Watercolor':'💧','Oil Painting':'🎭','Pixel Art':'🕹','Impressionist':'🌅','Ukiyo-e':'🗻'};
   document.getElementById('upload-form').style.display='none';
@@ -59,10 +59,10 @@ function generateArt(){
 
   var pct=0;
   var pctInterval=setInterval(function(){
-    pct=Math.min(pct+2,90);
+    pct=Math.min(pct+1,95);
     document.getElementById('progress-fill').style.width=pct+'%';
     document.getElementById('progress-pct').textContent=pct+'%';
-  },800);
+  },400);
 
   var stylePrompts={
     'Anime Style':'anime style portrait illustration manga art vibrant colors bold outlines high quality',
@@ -75,23 +75,42 @@ function generateArt(){
     'Ukiyo-e':'ukiyo-e Japanese woodblock print portrait flat colors bold outlines traditional'
   };
 
-  var prompt=encodeURIComponent(stylePrompts[selectedStyle]||'artistic portrait illustration high quality');
+  var prompt=stylePrompts[selectedStyle]||'artistic portrait illustration high quality';
   var seed=Math.floor(Math.random()*1000000);
-  var imageUrl='https://image.pollinations.ai/prompt/'+prompt+'?width=512&height=512&seed='+seed+'&nologo=true&token=artify&model=turbo';
 
-  setTimeout(function(){
+  var formData=new FormData();
+  formData.append('text',prompt);
+  formData.append('grid_size','1');
+
+  fetch('https://api.deepai.org/api/text2img',{
+    method:'POST',
+    headers:{'api-key':'quickstart-QUdJIGlzIGF3ZXNvbWU'},
+    body:formData
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
     clearInterval(pctInterval);
     document.getElementById('progress-fill').style.width='100%';
     document.getElementById('progress-pct').textContent='100%';
     loader.style.display='none';
-    document.getElementById('result-img').src=imageUrl;
-    document.getElementById('result-label').textContent=selectedStyle+' Transformation';
-    document.getElementById('result-view').style.display='block';
-    resultUrl=imageUrl;
-    showToast('Your artwork is ready!','gold');
-  },20000);
-}
-
+    if(data.output_url){
+      document.getElementById('result-img').src=data.output_url;
+      document.getElementById('result-label').textContent=selectedStyle+' Transformation';
+      document.getElementById('result-view').style.display='block';
+      resultUrl=data.output_url;
+      showToast('Your artwork is ready!','gold');
+    } else {
+      document.getElementById('upload-form').style.display='block';
+      showError('Generation failed. Please try again.');
+    }
+  })
+  .catch(function(err){
+    clearInterval(pctInterval);
+    loader.style.display='none';
+    document.getElementById('upload-form').style.display='block';
+    showError('Error: '+err.message);
+  });
+} 
 function downloadResult(){
   if(!resultUrl)return;
   var a=document.createElement('a');
