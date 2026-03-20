@@ -77,7 +77,7 @@ function generateArt(){
 
   var prompt=encodeURIComponent(stylePrompts[selectedStyle]||'artistic portrait illustration high quality');
   var seed=Math.floor(Math.random()*1000000);
-  var imageUrl='https://image.pollinations.ai/prompt/'+prompt+'?width=512&height=512&seed='+seed+'&nologo=true&model=flux&nofeed=true';
+  var imageUrl='https://image.pollinations.ai/prompt/'+prompt+'?width=512&height=512&seed='+seed+'&nologo=true';
 
   setTimeout(function(){
     clearInterval(pctInterval);
@@ -89,7 +89,7 @@ function generateArt(){
     document.getElementById('result-view').style.display='block';
     resultUrl=imageUrl;
     showToast('Your artwork is ready!','gold');
-  },8000);
+  },20000);
 }
 
 function downloadResult(){
